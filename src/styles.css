@@ -1,0 +1,53 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-serif: 'Cormorant Garamond', ui-serif, Georgia, serif;
+  --font-sans: 'Urbanist', ui-sans-serif, system-ui, sans-serif;
+
+  --color-marble-black: #000000;
+  --color-marble-ink: #0b0d12;
+  --color-marble-accent: #4aa3ff;
+}
+
+/* Base ------------------------------------------------------------------ */
+html {
+  scroll-behavior: auto;
+  background-color: #000000;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: #000000;
+  color: #ffffff;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+}
+
+::selection {
+  background: rgba(255, 255, 255, 0.9);
+  color: #000000;
+}
+
+/* Thin, unobtrusive scrollbar to preserve the editorial aesthetic */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #000000;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: 9999px;
+}
+
+/* Utility ---------------------------------------------------------------- */
+.font-serif-tight {
+  font-family: var(--font-serif);
+  letter-spacing: -0.01em;
+}
+
+/* Sweep reveal used by the scrubbed walkthrough copy */
+.sweep-mask {
+  clip-path: inset(0 100% 0 0);
+}
