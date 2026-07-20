@@ -65,28 +65,43 @@ export function useScrubbedVideo({
     let killed = false
     let lastProgress = 0
     let blobUrl: string | null = null
+    let seeking = false // our own in-flight flag, reset by the `seeked` event
 
     const hasDuration = () =>
       !!video.duration && !Number.isNaN(video.duration) && video.duration > 0
 
-    // Seek only when the decoder is idle. Issuing currentTime while the video is
-    // already mid-seek is what causes the intermittent "breaking".
-    const applySeek = () => {
-      if (!hasDuration() || video.seeking) return
+    // Issue a seek toward the eased playhead, but only when the decoder is idle.
+    // Queuing a new currentTime while one is still in flight is what makes
+    // playback stutter/break.
+    const pump = () => {
+      if (killed || !hasDuration()) return
+      // Reconcile in case a `seeked` event was missed.
+      if (seeking && !video.seeking) seeking = false
+      if (seeking) return
       const time = Math.max(0, Math.min(current, video.duration - 0.05))
-      if (Math.abs(video.currentTime - time) < 1 / 60) return // already there
+      if (Math.abs(video.currentTime - time) < 1 / 120) return // already there
+      seeking = true
       try {
         video.currentTime = time
       } catch {
-        /* seeking may throw transiently; ignored */
+        seeking = false // seeking may throw transiently before it's seekable
       }
     }
+
+    // The moment a seek finishes, immediately chase the newest position instead
+    // of waiting for the next animation frame — this keeps the decoder busy and
+    // is the key to smoothness.
+    const onSeeked = () => {
+      seeking = false
+      pump()
+    }
+    video.addEventListener('seeked', onSeeked)
 
     const lerp = () => {
       const target = lastProgress * (hasDuration() ? video.duration : 1)
       current += (target - current) * smoothing
-      if (Math.abs(target - current) < 0.001) current = target
-      applySeek()
+      if (Math.abs(target - current) < 0.0005) current = target
+      pump()
       rafId = requestAnimationFrame(lerp)
     }
 
@@ -167,6 +182,7 @@ export function useScrubbedVideo({
     return () => {
       killed = true
       cancelAnimationFrame(rafId)
+      video.removeEventListener('seeked', onSeeked)
       trigger?.kill()
       if (blobUrl) URL.revokeObjectURL(blobUrl)
     }
