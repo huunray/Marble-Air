@@ -51,6 +51,8 @@ export function Experience() {
     distance: '500%',
     refreshPriority: 2,
     onProgress: setProgress,
+    preloadBlob: true, // hold the whole clip in memory for stall-free scrubbing
+    smoothing: 0.1,
   })
 
   const activeIndex = Math.min(BLOCKS.length - 1, Math.floor(progress / SEG))
@@ -67,7 +69,7 @@ export function Experience() {
           src={ASSETS.experienceVideo}
           muted
           playsInline
-          preload="auto"
+          preload="metadata"
         />
         {/* Legibility: darken top + bottom without heavy shadows on the copy */}
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/70 via-black/20 to-black/70" />

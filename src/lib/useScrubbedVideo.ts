@@ -17,6 +17,15 @@ interface ScrubbedVideoOptions {
   refreshPriority?: number
   /** Called each tick with pin progress (0..1) so callers can drive UI. */
   onProgress?: (progress: number) => void
+  /**
+   * Download the whole clip into memory (Blob) before scrubbing so every seek
+   * is instant with no network stalls. Best for smoothness on clips that aren't
+   * keyframe-dense or are served in chunks. Falls back to direct streaming if
+   * the fetch fails (e.g. CORS).
+   */
+  preloadBlob?: boolean
+  /** Lerp smoothing factor (0..1). Lower = smoother/softer, higher = snappier. */
+  smoothing?: number
 }
 
 /**
@@ -24,11 +33,15 @@ interface ScrubbedVideoOptions {
  * pinned distance plays the clip from first frame to last, then releases into
  * the next section.
  *
- * The video is primed (a short seek to force buffering) before scrubbing is
- * enabled. Playback position is driven by a requestAnimationFrame lerp loop so
- * the frames read as smooth motion rather than discrete seeks. Pin lives on the
- * inner viewport while the trigger is the outer wrapper, so later sections
- * don't premature-unpin or leave a gap.
+ * Smoothness comes from two things: (1) a requestAnimationFrame lerp loop eases
+ * the playhead toward the scroll target instead of snapping, and (2) seeks are
+ * *gated* — a new `currentTime` is only issued once the previous seek has
+ * finished (`video.seeking` is false). Without that gate, seeks queue faster
+ * than the decoder can service them and playback stutters/breaks. Optionally the
+ * whole file is held in memory as a Blob so seeks never wait on the network.
+ *
+ * Pin lives on the inner viewport while the trigger is the outer wrapper, so
+ * later sections don't premature-unpin or leave a gap.
  */
 export function useScrubbedVideo({
   wrapperRef,
@@ -37,6 +50,8 @@ export function useScrubbedVideo({
   distance = '300%',
   refreshPriority = 0,
   onProgress,
+  preloadBlob = false,
+  smoothing = 0.1,
 }: ScrubbedVideoOptions) {
   useEffect(() => {
     const wrapper = wrapperRef.current
@@ -44,24 +59,34 @@ export function useScrubbedVideo({
     const video = videoRef.current
     if (!wrapper || !viewport || !video) return
 
-    let current = 0 // last-applied currentTime
-    let target = 0 // desired currentTime
+    let current = 0 // eased playhead position
     let rafId = 0
     let trigger: ScrollTrigger | null = null
     let killed = false
-
     let lastProgress = 0
+    let blobUrl: string | null = null
 
     const hasDuration = () =>
       !!video.duration && !Number.isNaN(video.duration) && video.duration > 0
 
-    const lerp = () => {
-      target = lastProgress * (hasDuration() ? video.duration : 1)
-      current += (target - current) * 0.12
-      if (Math.abs(target - current) < 0.001) current = target
-      if (hasDuration() && video.seekable.length > 0) {
-        video.currentTime = Math.min(current, video.duration - 0.05)
+    // Seek only when the decoder is idle. Issuing currentTime while the video is
+    // already mid-seek is what causes the intermittent "breaking".
+    const applySeek = () => {
+      if (!hasDuration() || video.seeking) return
+      const time = Math.max(0, Math.min(current, video.duration - 0.05))
+      if (Math.abs(video.currentTime - time) < 1 / 60) return // already there
+      try {
+        video.currentTime = time
+      } catch {
+        /* seeking may throw transiently; ignored */
       }
+    }
+
+    const lerp = () => {
+      const target = lastProgress * (hasDuration() ? video.duration : 1)
+      current += (target - current) * smoothing
+      if (Math.abs(target - current) < 0.001) current = target
+      applySeek()
       rafId = requestAnimationFrame(lerp)
     }
 
@@ -86,7 +111,6 @@ export function useScrubbedVideo({
 
       rafId = requestAnimationFrame(lerp)
 
-      // Ensure correct measurement now that this pin exists.
       requestAnimationFrame(() => {
         ScrollTrigger.sort()
         ScrollTrigger.refresh()
@@ -104,19 +128,47 @@ export function useScrubbedVideo({
       ScrollTrigger.refresh()
     }
 
+    const attachPrime = () => {
+      if (video.readyState >= 1) prime()
+      else video.addEventListener('loadedmetadata', prime, { once: true })
+    }
+
+    // Pull the entire clip into memory so seeks are network-stall free.
+    const loadIntoMemory = () => {
+      const originalSrc = video.currentSrc || video.src
+      if (!originalSrc) return
+      fetch(originalSrc, { mode: 'cors' })
+        .then((res) => {
+          if (!res.ok) throw new Error(`status ${res.status}`)
+          return res.blob()
+        })
+        .then((blob) => {
+          if (killed) return
+          blobUrl = URL.createObjectURL(blob)
+          video.src = blobUrl
+          video.load()
+          attachPrime()
+        })
+        .catch(() => {
+          // Streaming fallback: keep the original src and scrub as best we can.
+          if (!killed) attachPrime()
+        })
+    }
+
     video.pause()
     setup()
 
-    if (video.readyState >= 1) {
-      prime()
+    if (preloadBlob) {
+      loadIntoMemory()
     } else {
-      video.addEventListener('loadedmetadata', prime, { once: true })
+      attachPrime()
     }
 
     return () => {
       killed = true
       cancelAnimationFrame(rafId)
       trigger?.kill()
+      if (blobUrl) URL.revokeObjectURL(blobUrl)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
