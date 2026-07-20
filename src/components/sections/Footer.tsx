@@ -1,5 +1,3 @@
-import { ASSETS } from '../../lib/assets'
-
 const COLUMNS: { heading: string; links: string[] }[] = [
   { heading: 'Explore', links: ['Flights', 'Destinations', 'Experience', 'Fleet'] },
   { heading: 'Company', links: ['Who We Are', 'Careers', 'Press', 'Sustainability'] },
@@ -17,12 +15,9 @@ export function Footer() {
         {/* Top row */}
         <div className="flex flex-col justify-between gap-14 md:flex-row">
           <div className="max-w-sm">
-            <img
-              src={ASSETS.logo}
-              alt="Marble Air"
-              className="h-14 w-auto"
-              draggable={false}
-            />
+            <span className="font-serif-tight text-2xl font-light tracking-wide text-white">
+              Marble Air
+            </span>
             <p className="mt-6 font-sans text-sm font-light leading-relaxed text-white/60">
               A new era of flying. Marble Air composes every journey around
               stillness, craft, and the quiet luxury of the sky.

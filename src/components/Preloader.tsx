@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { ASSETS } from '../lib/assets'
 
 /**
  * Full-screen black boarding overlay shown on first load for ~3.4s.
@@ -40,12 +39,9 @@ export function Preloader() {
       }`}
       aria-hidden={fading}
     >
-      <img
-        src={ASSETS.logo}
-        alt="Marble Air"
-        className="h-20 w-auto opacity-90"
-        draggable={false}
-      />
+      <span className="font-serif-tight text-4xl font-light tracking-wide text-white/90">
+        Marble Air
+      </span>
 
       <div className="mt-10 flex flex-col items-center gap-3">
         <span className="font-sans text-[0.7rem] font-light uppercase tracking-[0.45em] text-white/60">

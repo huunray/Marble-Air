@@ -1,4 +1,4 @@
-import { ASSETS, CONTAINER_WIDTH } from '../lib/assets'
+import { CONTAINER_WIDTH } from '../lib/assets'
 
 const LINKS = ['Flights', 'Destinations', 'Experience', 'Contact']
 
@@ -13,13 +13,14 @@ export function Nav() {
         className="flex items-center justify-between rounded-full border border-white/15 bg-white/10 px-4 py-2.5 backdrop-blur-xl"
         style={{ width: CONTAINER_WIDTH }}
       >
-        <a href="#" className="flex shrink-0 items-center" aria-label="Marble Air home">
-          <img
-            src={ASSETS.logo}
-            alt="Marble Air"
-            className="h-14 w-auto"
-            draggable={false}
-          />
+        <a
+          href="#"
+          className="flex shrink-0 items-center pl-2"
+          aria-label="Marble Air home"
+        >
+          <span className="font-serif-tight text-2xl font-light tracking-wide text-white">
+            Marble Air
+          </span>
         </a>
 
         <ul className="hidden items-center gap-9 md:flex">
