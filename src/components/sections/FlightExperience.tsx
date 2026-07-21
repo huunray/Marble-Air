@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { ASSETS } from '../../lib/assets'
 
 if (typeof window !== 'undefined') {
   gsap.registerPlugin(ScrollTrigger)
@@ -17,10 +18,6 @@ interface Card {
 // Pexels CDN URLs are deterministic from the numeric photo id.
 const PEXELS = (id: number) =>
   `https://images.pexels.com/photos/${id}/pexels-photo-${id}.jpeg?auto=compress&cs=tinysrgb&w=1100&h=1500&fit=crop`
-
-// Blurred night-sky backdrop behind the 3D cards.
-const NIGHT_SKY =
-  'https://images.pexels.com/photos/1229042/pexels-photo-1229042.jpeg?auto=compress&cs=tinysrgb&w=1600'
 
 const CARDS: Card[] = [
   {
@@ -262,19 +259,16 @@ export function FlightExperience() {
             'radial-gradient(120% 100% at 50% 20%, #0c0b16 0%, #06060c 55%, #000 100%)',
         }}
       >
-        {/* Blurred night-sky backdrop (scaled up so the blur has no clear edge) */}
-        <div
-          className="pointer-events-none absolute inset-0"
-          style={{
-            backgroundImage: `url("${NIGHT_SKY}")`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            filter: 'blur(48px) brightness(0.55)',
-            transform: 'scale(1.25)',
-          }}
+        {/* Looping background video (no overlay) */}
+        <video
+          className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+          src={ASSETS.flightVideo}
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="auto"
         />
-        {/* Darken so the 3D cards stay legible over the sky */}
-        <div className="pointer-events-none absolute inset-0 bg-black/55" />
 
         {/* Background particle dust */}
         <canvas
