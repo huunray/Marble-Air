@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { Preloader } from '../components/Preloader'
 import { Hero } from '../components/sections/Hero'
 import { Experience } from '../components/sections/Experience'
+import { FlightExperience } from '../components/sections/FlightExperience'
 import { WhoWeAre } from '../components/sections/WhoWeAre'
 import { FlyBeyond } from '../components/sections/FlyBeyond'
 import { Footer } from '../components/sections/Footer'
@@ -16,6 +17,7 @@ function Home() {
       <Preloader />
       <Hero />
       <Experience />
+      <FlightExperience />
       <WhoWeAre />
       <FlyBeyond />
       <Footer />
