@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import { ASSETS } from '../../lib/assets'
 
 if (typeof window !== 'undefined') {
   gsap.registerPlugin(ScrollTrigger)
@@ -15,11 +14,13 @@ interface Card {
   scene: string // decorative gradient "scene" fallback for the glass panel
 }
 
-const FLIGHT_SCRUB_SRC = ASSETS.flightVideoScrub
-
 // Pexels CDN URLs are deterministic from the numeric photo id.
 const PEXELS = (id: number) =>
   `https://images.pexels.com/photos/${id}/pexels-photo-${id}.jpeg?auto=compress&cs=tinysrgb&w=1100&h=1500&fit=crop`
+
+// Blurred night-sky backdrop behind the 3D cards.
+const NIGHT_SKY =
+  'https://images.pexels.com/photos/1229042/pexels-photo-1229042.jpeg?auto=compress&cs=tinysrgb&w=1600'
 
 const CARDS: Card[] = [
   {
@@ -98,7 +99,6 @@ export function FlightExperience() {
   const wrapperRef = useRef<HTMLDivElement>(null)
   const viewportRef = useRef<HTMLDivElement>(null)
   const stageRef = useRef<HTMLDivElement>(null)
-  const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const cardRefs = useRef<(HTMLDivElement | null)[]>([])
   const contentRefs = useRef<(HTMLDivElement | null)[]>([])
@@ -113,63 +113,6 @@ export function FlightExperience() {
     let rafId = 0
     let target = 0 // scroll progress 0..1
     let cam = 0 // eased progress
-
-    // ---- Scrubbed background video --------------------------------------
-    const video = videoRef.current
-    let seeking = false // in-flight seek flag, reset by the `seeked` event
-    let scrubEnabled = false // only scrub once the clip is in memory (no stalls)
-    let blobUrl: string | null = null
-    const hasDur = () =>
-      !!video && !!video.duration && !Number.isNaN(video.duration) && video.duration > 0
-
-    // Scrub the background video to the eased scroll position, gating seeks so
-    // they never pile up (the key to smooth playback).
-    const pumpVideo = () => {
-      if (!video || !scrubEnabled || !hasDur()) return
-      if (seeking && !video.seeking) seeking = false
-      if (seeking) return
-      const time = Math.max(0, Math.min(cam * video.duration, video.duration - 0.05))
-      if (Math.abs(video.currentTime - time) < 1 / 120) return
-      seeking = true
-      try {
-        video.currentTime = time
-      } catch {
-        seeking = false
-      }
-    }
-    const onSeeked = () => {
-      seeking = false
-      pumpVideo()
-    }
-    if (video) {
-      video.pause()
-      video.addEventListener('seeked', onSeeked)
-      // Pull a lighter, in-memory copy so every seek is instant with no network
-      // stalls. Scrubbing stays disabled (video frozen on frame 0) until it's
-      // ready, so the streaming version never stutters. Fall back to streaming
-      // if the fetch is blocked.
-      fetch(FLIGHT_SCRUB_SRC, { mode: 'cors' })
-        .then((r) => {
-          if (!r.ok) throw new Error(String(r.status))
-          return r.blob()
-        })
-        .then((blob) => {
-          if (killed) return
-          blobUrl = URL.createObjectURL(blob)
-          video.addEventListener(
-            'loadeddata',
-            () => {
-              scrubEnabled = true
-            },
-            { once: true },
-          )
-          video.src = blobUrl
-          video.load()
-        })
-        .catch(() => {
-          scrubEnabled = true // best-effort streaming fallback
-        })
-    }
 
     // ---- Background particle field --------------------------------------
     const canvas = canvasRef.current
@@ -273,7 +216,6 @@ export function FlightExperience() {
       cam += (target - cam) * 0.09 // eased camera → smooth scrubbing
       if (Math.abs(target - cam) < 0.00001) cam = target
       render()
-      pumpVideo()
       rafId = requestAnimationFrame(tick)
     }
 
@@ -305,8 +247,6 @@ export function FlightExperience() {
       void killed
       cancelAnimationFrame(rafId)
       window.removeEventListener('resize', onResize)
-      video?.removeEventListener('seeked', onSeeked)
-      if (blobUrl) URL.revokeObjectURL(blobUrl)
       trigger.kill()
     }
   }, [])
@@ -322,17 +262,19 @@ export function FlightExperience() {
             'radial-gradient(120% 100% at 50% 20%, #0c0b16 0%, #06060c 55%, #000 100%)',
         }}
       >
-        {/* Scroll-scrubbed background video */}
-        <video
-          ref={videoRef}
-          className="absolute inset-0 h-full w-full object-cover"
-          src={ASSETS.flightVideo}
-          muted
-          playsInline
-          preload="metadata"
+        {/* Blurred night-sky backdrop (scaled up so the blur has no clear edge) */}
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            backgroundImage: `url("${NIGHT_SKY}")`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            filter: 'blur(48px) brightness(0.55)',
+            transform: 'scale(1.25)',
+          }}
         />
-        {/* Darken so the 3D cards stay legible over the video */}
-        <div className="pointer-events-none absolute inset-0 bg-black/60" />
+        {/* Darken so the 3D cards stay legible over the sky */}
+        <div className="pointer-events-none absolute inset-0 bg-black/55" />
 
         {/* Background particle dust */}
         <canvas
