@@ -17,15 +17,16 @@ interface Card {
 
 const FLIGHT_SCRUB_SRC = ASSETS.flightVideoScrub
 
-const UNSPLASH = (id: string) =>
-  `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=1100&q=80`
+// Pexels CDN URLs are deterministic from the numeric photo id.
+const PEXELS = (id: number) =>
+  `https://images.pexels.com/photos/${id}/pexels-photo-${id}.jpeg?auto=compress&cs=tinysrgb&w=1100&h=1500&fit=crop`
 
 const CARDS: Card[] = [
   {
     tag: 'Suites',
     title: 'A Private Suite\nAbove the Clouds',
     brand: 'First',
-    img: UNSPLASH('1436491865332-7a61a109cc05'), // wing over clouds
+    img: PEXELS(20562278), // luxury private-jet leather suite
     scene:
       'radial-gradient(120% 90% at 30% 20%, #1c3a34 0%, #0d1f1c 55%, #05100e 100%)',
   },
@@ -33,7 +34,7 @@ const CARDS: Card[] = [
     tag: 'The Lounge',
     title: 'The Lounge\nBetween Worlds',
     brand: 'Marble',
-    img: UNSPLASH('1566073771259-6a8506099945'), // lounge interior
+    img: PEXELS(15893878), // wide commercial cabin interior
     scene:
       'radial-gradient(120% 90% at 70% 25%, #23324f 0%, #131c30 55%, #070c16 100%)',
   },
@@ -41,7 +42,7 @@ const CARDS: Card[] = [
     tag: 'Dining',
     title: 'Dining at Forty\nThousand Feet',
     brand: 'Atelier',
-    img: UNSPLASH('1414235077428-338989a2e8c0'), // fine dining
+    img: PEXELS(16562837), // cabin seats with screens / trays
     scene:
       'radial-gradient(120% 90% at 40% 30%, #3a2740 0%, #201427 55%, #0d0812 100%)',
   },
@@ -49,7 +50,7 @@ const CARDS: Card[] = [
     tag: 'Rest',
     title: 'Silence,\nPerfectly Tuned',
     brand: 'Cabin',
-    img: UNSPLASH('1505693416388-ac5ce068fe85'), // calm rest
+    img: PEXELS(2276704), // passenger resting in an airliner seat
     scene:
       'radial-gradient(120% 90% at 60% 20%, #17323f 0%, #0e2029 55%, #05111a 100%)',
   },
@@ -57,7 +58,7 @@ const CARDS: Card[] = [
     tag: 'The View',
     title: 'A Room With\na Skyline View',
     brand: 'Horizon',
-    img: UNSPLASH('1503221043305-f7498f8b7888'), // airplane window view
+    img: PEXELS(4004016), // airplane window seat view
     scene:
       'radial-gradient(120% 90% at 35% 25%, #2b2c50 0%, #171833 55%, #090a1a 100%)',
   },
@@ -65,7 +66,7 @@ const CARDS: Card[] = [
     tag: 'Arrival',
     title: 'Arrive\nEntirely Renewed',
     brand: 'Marble',
-    img: UNSPLASH('1517495306984-f84210f9daa8'), // sky at dawn
+    img: PEXELS(29466928), // relaxed flight view from window seat
     scene:
       'radial-gradient(120% 90% at 65% 30%, #123534 0%, #0b2120 55%, #04100f 100%)',
   },
