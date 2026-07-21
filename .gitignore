@@ -10,3 +10,6 @@ dist
 .env
 .env.local
 src/routeTree.gen.ts
+
+# scratch test scripts
+_*.mjs
