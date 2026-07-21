@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { ASSETS } from '../../lib/assets'
 
 if (typeof window !== 'undefined') {
   gsap.registerPlugin(ScrollTrigger)
@@ -84,6 +85,7 @@ export function FlightExperience() {
   const wrapperRef = useRef<HTMLDivElement>(null)
   const viewportRef = useRef<HTMLDivElement>(null)
   const stageRef = useRef<HTMLDivElement>(null)
+  const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const cardRefs = useRef<(HTMLDivElement | null)[]>([])
   const contentRefs = useRef<(HTMLDivElement | null)[]>([])
@@ -98,6 +100,54 @@ export function FlightExperience() {
     let rafId = 0
     let target = 0 // scroll progress 0..1
     let cam = 0 // eased progress
+
+    // ---- Scrubbed background video --------------------------------------
+    const video = videoRef.current
+    let seeking = false // in-flight seek flag, reset by the `seeked` event
+    let blobUrl: string | null = null
+    const hasDur = () =>
+      !!video && !!video.duration && !Number.isNaN(video.duration) && video.duration > 0
+
+    // Scrub the background video to the eased scroll position, gating seeks so
+    // they never pile up (the key to smooth playback).
+    const pumpVideo = () => {
+      if (!video || !hasDur()) return
+      if (seeking && !video.seeking) seeking = false
+      if (seeking) return
+      const time = Math.max(0, Math.min(cam * video.duration, video.duration - 0.05))
+      if (Math.abs(video.currentTime - time) < 1 / 120) return
+      seeking = true
+      try {
+        video.currentTime = time
+      } catch {
+        seeking = false
+      }
+    }
+    const onSeeked = () => {
+      seeking = false
+      pumpVideo()
+    }
+    if (video) {
+      video.pause()
+      video.addEventListener('seeked', onSeeked)
+      // Hold the whole clip in memory for stall-free scrubbing; fall back to
+      // streaming if the fetch is blocked.
+      const src = video.currentSrc || video.src
+      if (src) {
+        fetch(src, { mode: 'cors' })
+          .then((r) => {
+            if (!r.ok) throw new Error(String(r.status))
+            return r.blob()
+          })
+          .then((blob) => {
+            if (killed) return
+            blobUrl = URL.createObjectURL(blob)
+            video.src = blobUrl
+            video.load()
+          })
+          .catch(() => {})
+      }
+    }
 
     // ---- Background particle field --------------------------------------
     const canvas = canvasRef.current
@@ -201,6 +251,7 @@ export function FlightExperience() {
       cam += (target - cam) * 0.09 // eased camera → smooth scrubbing
       if (Math.abs(target - cam) < 0.00001) cam = target
       render()
+      pumpVideo()
       rafId = requestAnimationFrame(tick)
     }
 
@@ -232,6 +283,8 @@ export function FlightExperience() {
       void killed
       cancelAnimationFrame(rafId)
       window.removeEventListener('resize', onResize)
+      video?.removeEventListener('seeked', onSeeked)
+      if (blobUrl) URL.revokeObjectURL(blobUrl)
       trigger.kill()
     }
   }, [])
@@ -247,6 +300,18 @@ export function FlightExperience() {
             'radial-gradient(120% 100% at 50% 20%, #0c0b16 0%, #06060c 55%, #000 100%)',
         }}
       >
+        {/* Scroll-scrubbed background video */}
+        <video
+          ref={videoRef}
+          className="absolute inset-0 h-full w-full object-cover"
+          src={ASSETS.flightVideo}
+          muted
+          playsInline
+          preload="metadata"
+        />
+        {/* Darken so the 3D cards stay legible over the video */}
+        <div className="pointer-events-none absolute inset-0 bg-black/60" />
+
         {/* Background particle dust */}
         <canvas
           ref={canvasRef}
