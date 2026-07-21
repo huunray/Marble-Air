@@ -11,14 +11,21 @@ interface Card {
   tag: string
   title: string
   brand: string
-  scene: string // decorative gradient "scene" for the glass panel
+  img: string // background photo (falls back to the gradient if it fails)
+  scene: string // decorative gradient "scene" fallback for the glass panel
 }
+
+const FLIGHT_SCRUB_SRC = ASSETS.flightVideoScrub
+
+const UNSPLASH = (id: string) =>
+  `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=1100&q=80`
 
 const CARDS: Card[] = [
   {
     tag: 'Suites',
     title: 'A Private Suite\nAbove the Clouds',
     brand: 'First',
+    img: UNSPLASH('1436491865332-7a61a109cc05'), // wing over clouds
     scene:
       'radial-gradient(120% 90% at 30% 20%, #1c3a34 0%, #0d1f1c 55%, #05100e 100%)',
   },
@@ -26,6 +33,7 @@ const CARDS: Card[] = [
     tag: 'The Lounge',
     title: 'The Lounge\nBetween Worlds',
     brand: 'Marble',
+    img: UNSPLASH('1566073771259-6a8506099945'), // lounge interior
     scene:
       'radial-gradient(120% 90% at 70% 25%, #23324f 0%, #131c30 55%, #070c16 100%)',
   },
@@ -33,6 +41,7 @@ const CARDS: Card[] = [
     tag: 'Dining',
     title: 'Dining at Forty\nThousand Feet',
     brand: 'Atelier',
+    img: UNSPLASH('1414235077428-338989a2e8c0'), // fine dining
     scene:
       'radial-gradient(120% 90% at 40% 30%, #3a2740 0%, #201427 55%, #0d0812 100%)',
   },
@@ -40,6 +49,7 @@ const CARDS: Card[] = [
     tag: 'Rest',
     title: 'Silence,\nPerfectly Tuned',
     brand: 'Cabin',
+    img: UNSPLASH('1505693416388-ac5ce068fe85'), // calm rest
     scene:
       'radial-gradient(120% 90% at 60% 20%, #17323f 0%, #0e2029 55%, #05111a 100%)',
   },
@@ -47,6 +57,7 @@ const CARDS: Card[] = [
     tag: 'The View',
     title: 'A Room With\na Skyline View',
     brand: 'Horizon',
+    img: UNSPLASH('1503221043305-f7498f8b7888'), // airplane window view
     scene:
       'radial-gradient(120% 90% at 35% 25%, #2b2c50 0%, #171833 55%, #090a1a 100%)',
   },
@@ -54,6 +65,7 @@ const CARDS: Card[] = [
     tag: 'Arrival',
     title: 'Arrive\nEntirely Renewed',
     brand: 'Marble',
+    img: UNSPLASH('1517495306984-f84210f9daa8'), // sky at dawn
     scene:
       'radial-gradient(120% 90% at 65% 30%, #123534 0%, #0b2120 55%, #04100f 100%)',
   },
@@ -104,6 +116,7 @@ export function FlightExperience() {
     // ---- Scrubbed background video --------------------------------------
     const video = videoRef.current
     let seeking = false // in-flight seek flag, reset by the `seeked` event
+    let scrubEnabled = false // only scrub once the clip is in memory (no stalls)
     let blobUrl: string | null = null
     const hasDur = () =>
       !!video && !!video.duration && !Number.isNaN(video.duration) && video.duration > 0
@@ -111,7 +124,7 @@ export function FlightExperience() {
     // Scrub the background video to the eased scroll position, gating seeks so
     // they never pile up (the key to smooth playback).
     const pumpVideo = () => {
-      if (!video || !hasDur()) return
+      if (!video || !scrubEnabled || !hasDur()) return
       if (seeking && !video.seeking) seeking = false
       if (seeking) return
       const time = Math.max(0, Math.min(cam * video.duration, video.duration - 0.05))
@@ -130,23 +143,31 @@ export function FlightExperience() {
     if (video) {
       video.pause()
       video.addEventListener('seeked', onSeeked)
-      // Hold the whole clip in memory for stall-free scrubbing; fall back to
-      // streaming if the fetch is blocked.
-      const src = video.currentSrc || video.src
-      if (src) {
-        fetch(src, { mode: 'cors' })
-          .then((r) => {
-            if (!r.ok) throw new Error(String(r.status))
-            return r.blob()
-          })
-          .then((blob) => {
-            if (killed) return
-            blobUrl = URL.createObjectURL(blob)
-            video.src = blobUrl
-            video.load()
-          })
-          .catch(() => {})
-      }
+      // Pull a lighter, in-memory copy so every seek is instant with no network
+      // stalls. Scrubbing stays disabled (video frozen on frame 0) until it's
+      // ready, so the streaming version never stutters. Fall back to streaming
+      // if the fetch is blocked.
+      fetch(FLIGHT_SCRUB_SRC, { mode: 'cors' })
+        .then((r) => {
+          if (!r.ok) throw new Error(String(r.status))
+          return r.blob()
+        })
+        .then((blob) => {
+          if (killed) return
+          blobUrl = URL.createObjectURL(blob)
+          video.addEventListener(
+            'loadeddata',
+            () => {
+              scrubEnabled = true
+            },
+            { once: true },
+          )
+          video.src = blobUrl
+          video.load()
+        })
+        .catch(() => {
+          scrubEnabled = true // best-effort streaming fallback
+        })
     }
 
     // ---- Background particle field --------------------------------------
@@ -342,26 +363,34 @@ export function FlightExperience() {
               className="fx-card"
               style={{ opacity: 0 }}
             >
-              <div className="fx-card__scene" style={{ background: card.scene }} />
+              {/* Photo background, with the gradient as a graceful fallback */}
+              <div
+                className="fx-card__scene"
+                style={{
+                  background: `url("${card.img}") center/cover no-repeat, ${card.scene}`,
+                }}
+              />
               <div className="fx-card__sheen" />
+              {/* Bottom scrim so the caption stays legible over any photo */}
+              <div className="fx-card__scrim" />
 
               <div
                 ref={(el) => {
                   contentRefs.current[i] = el
                 }}
-                className="absolute inset-0 flex flex-col items-center justify-center px-10 text-center"
+                className="absolute inset-x-0 bottom-0 flex flex-col items-start px-8 pb-9 text-left md:px-10 md:pb-11"
               >
-                <span className="mb-5 font-sans text-[0.6rem] font-semibold uppercase tracking-[0.5em] text-white/60">
+                <span className="mb-3 font-sans text-[0.6rem] font-semibold uppercase tracking-[0.5em] text-white/65">
                   {card.brand}
                 </span>
-                <h3 className="fx-title text-3xl font-light leading-[1.12] text-white md:text-5xl">
+                <h3 className="fx-title text-3xl font-light leading-[1.08] text-white md:text-[2.6rem]">
                   {card.title.split('\n').map((line, j) => (
                     <span key={j} className="block">
                       {line}
                     </span>
                   ))}
                 </h3>
-                <span className="mt-6 font-sans text-[0.62rem] font-light uppercase tracking-[0.45em] text-white/45">
+                <span className="mt-4 font-sans text-[0.62rem] font-light uppercase tracking-[0.45em] text-white/55">
                   {card.tag}
                 </span>
               </div>

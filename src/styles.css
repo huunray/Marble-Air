@@ -63,8 +63,8 @@ body {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: min(720px, 62vw);
-  aspect-ratio: 16 / 10;
+  width: min(540px, 50vw);
+  aspect-ratio: 3 / 4;
   border-radius: 26px;
   overflow: hidden;
   transform-style: preserve-3d;
@@ -72,17 +72,17 @@ body {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.14),
     0 40px 120px rgba(0, 0, 0, 0.55);
-  /* feather the trailing edges so the card reads as dissolving */
+  /* feather the outer edges so the card reads as dissolving */
   -webkit-mask-image: radial-gradient(
-    130% 130% at 40% 40%,
-    #000 62%,
-    rgba(0, 0, 0, 0.35) 86%,
+    150% 150% at 50% 42%,
+    #000 74%,
+    rgba(0, 0, 0, 0.4) 90%,
     transparent 100%
   );
   mask-image: radial-gradient(
-    130% 130% at 40% 40%,
-    #000 62%,
-    rgba(0, 0, 0, 0.35) 86%,
+    150% 150% at 50% 42%,
+    #000 74%,
+    rgba(0, 0, 0, 0.4) 90%,
     transparent 100%
   );
   will-change: transform, opacity;
@@ -91,6 +91,21 @@ body {
 .fx-card__scene {
   position: absolute;
   inset: 0;
+  background-color: #0a0a12;
+}
+
+/* Bottom scrim keeps the caption readable over any photo */
+.fx-card__scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.9) 0%,
+    rgba(0, 0, 0, 0.55) 24%,
+    rgba(0, 0, 0, 0.1) 50%,
+    transparent 68%
+  );
+  pointer-events: none;
 }
 
 /* glassy sheen + top light */
