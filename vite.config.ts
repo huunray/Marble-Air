@@ -10,5 +10,11 @@ export default defineConfig({
   resolve: {
     tsconfigPaths: true,
   },
-  plugins: [tailwindcss(), tanstackStart(), viteReact()],
+  plugins: [
+    tailwindcss(),
+    // Prerender the site to static HTML so it ships as static files (no server
+    // runtime) and deploys anywhere without SSR routing.
+    tanstackStart({ prerender: { enabled: true } }),
+    viteReact(),
+  ],
 })
