@@ -20,7 +20,7 @@ export function Hero() {
     viewportRef,
     videoRef,
     distance: '300%',
-    refreshPriority: 3,
+    refreshPriority: 4,
     onProgress: (p) => {
       // Fade the headline + CTA out over the last 25% of the scrub.
       const fade = 1 - Math.max(0, (p - 0.75) / 0.25)

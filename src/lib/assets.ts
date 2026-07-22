@@ -11,6 +11,9 @@ export const ASSETS = {
   flightVideo:
     'https://res.cloudinary.com/dn5jjkar4/video/upload/v1784677733/kling_20260722_VIDEO_Very_minim_1907_0_de3drq.mp4',
 
+  destinationsVideo:
+    'https://res.cloudinary.com/dn5jjkar4/video/upload/v1784684459/Skymoveglobe_1_pdwwev.mp4',
+
   whoWeAreBg:
     '/__l5e/assets-v1/b0a6b59b-1a1c-44bc-8589-611a6bb90bb0/who-we-are-bg.jpeg',
 } as const

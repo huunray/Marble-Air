@@ -49,7 +49,7 @@ export function Experience() {
     viewportRef,
     videoRef,
     distance: '500%',
-    refreshPriority: 2,
+    refreshPriority: 3,
     onProgress: setProgress,
     preloadBlob: true, // hold the whole clip in memory for stall-free scrubbing
     smoothing: 0.1,
