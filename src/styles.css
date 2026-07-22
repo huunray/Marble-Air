@@ -3,10 +3,12 @@
 @theme {
   --font-serif: 'Cormorant Garamond', ui-serif, Georgia, serif;
   --font-sans: 'Urbanist', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Anton', 'Arial Narrow', system-ui, sans-serif;
 
   --color-marble-black: #000000;
   --color-marble-ink: #0b0d12;
   --color-marble-accent: #4aa3ff;
+  --color-marble-cream: #ebe7db;
 }
 
 /* Base ------------------------------------------------------------------ */
@@ -170,6 +172,37 @@ body {
   box-shadow:
     0 22px 60px rgba(0, 0, 0, 0.45),
     inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* ----------------------------------------------------------------------
+   Footer — bold poster layout with grid + grain texture
+---------------------------------------------------------------------- */
+.footer-grid {
+  background-image:
+    linear-gradient(rgba(235, 231, 219, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(235, 231, 219, 0.06) 1px, transparent 1px);
+  background-size: 112px 112px;
+}
+
+.footer-grain {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: 0.06;
+}
+
+.footer-wordmark {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 0.8;
+  white-space: nowrap;
+  transform: skewX(-9deg);
+}
+
+.footer-heading {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  line-height: 0.95;
 }
 
 /* A blue arc travels around the border as the card is shown */
