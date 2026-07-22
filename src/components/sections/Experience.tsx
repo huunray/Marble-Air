@@ -71,9 +71,6 @@ export function Experience() {
           playsInline
           preload="metadata"
         />
-        {/* Legibility: darken top + bottom without heavy shadows on the copy */}
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/70 via-black/20 to-black/70" />
-
         {/* Section eyebrow */}
         <div className="absolute inset-x-0 top-[12%] flex justify-center">
           <span className="font-sans text-[0.7rem] font-medium uppercase tracking-[0.5em] text-white/55">
