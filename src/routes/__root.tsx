@@ -26,7 +26,7 @@ export const Route = createRootRoute({
       {
         property: 'og:image',
         content:
-          '/__l5e/assets-v1/f79ed6ef-dea9-4dcb-afc9-53d952a8890b/marble_logo.png',
+          'https://res.cloudinary.com/dn5jjkar4/image/upload/w_1200,h_630,c_fill/v1784686540/Add_airplane_to_background_202607220315_yeinwy.jpg',
       },
       // Twitter
       { name: 'twitter:card', content: 'summary_large_image' },
@@ -39,7 +39,7 @@ export const Route = createRootRoute({
       {
         name: 'twitter:image',
         content:
-          '/__l5e/assets-v1/f79ed6ef-dea9-4dcb-afc9-53d952a8890b/marble_logo.png',
+          'https://res.cloudinary.com/dn5jjkar4/image/upload/w_1200,h_630,c_fill/v1784686540/Add_airplane_to_background_202607220315_yeinwy.jpg',
       },
     ],
     links: [
