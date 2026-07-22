@@ -2,9 +2,11 @@ import { useRef, useState } from 'react'
 import { ASSETS } from '../../lib/assets'
 import { useScrubbedVideo } from '../../lib/useScrubbedVideo'
 
-// The video shows the open sky first, then transforms into a globe. We split
-// the scroll into a "sky" phase and a "globe" phase to match it.
-const PHASE_SPLIT = 0.6
+// The video shows the open sky first, then transforms into a globe. The sky
+// phase runs long (~70%), then a short pause (~2s of the clip), then the globe
+// phase brings up the destinations (~30%).
+const SKY_END = 0.64 // sky boxes finish revealing by here
+const DEST_START = 0.7 // destinations begin after the pause
 
 interface SkyBlock {
   header: string
@@ -61,8 +63,8 @@ export function Destinations() {
     smoothing: 0.1,
   })
 
-  const skySeg = PHASE_SPLIT / SKY_BLOCKS.length
-  const destSeg = (1 - PHASE_SPLIT) / DESTINATIONS.length
+  const skySeg = SKY_END / SKY_BLOCKS.length
+  const destSeg = (1 - DEST_START) / DESTINATIONS.length
 
   return (
     <div ref={wrapperRef} className="relative w-full bg-black">
@@ -89,64 +91,62 @@ export function Destinations() {
           </span>
         </div>
 
-        {/* Phase 1 — sky: frosted boxes scroll up, one by one */}
+        {/* Phase 1 — sky: small dark-glass boxes scroll up, one by one */}
         {SKY_BLOCKS.map((block, i) => {
           const t = (progress - i * skySeg) / skySeg
           const inSeg = t >= 0 && t <= 1
           const enter = smooth(t / 0.3)
           const exit = smooth((t - 0.7) / 0.3)
           const opacity = inSeg ? enter * (1 - exit) : 0
-          const y = (0.5 - t) * 150 // scroll upward through the centre
+          const y = (0.5 - t) * 90 // scroll upward through its resting spot
           return (
             <div
               key={`sky-${i}`}
-              className="absolute top-1/2 left-1/2 w-[min(560px,88vw)] rounded-3xl border border-white/20 bg-white/10 px-12 py-14 text-center backdrop-blur-2xl"
+              className="dest-card absolute bottom-[9%] left-[5%] w-[min(400px,84vw)] px-8 py-7 text-left"
               style={{
                 opacity,
-                transform: `translate(-50%, -50%) translateY(${y}px)`,
-                boxShadow: '0 30px 90px rgba(0,0,0,0.35)',
+                transform: `translateY(${y}px)`,
                 pointerEvents: opacity > 0.5 ? 'auto' : 'none',
               }}
               aria-hidden={opacity < 0.5}
             >
-              <h3 className="font-serif-tight text-4xl font-light leading-[1.1] text-white md:text-5xl">
+              <h3 className="font-serif-tight text-2xl font-light leading-[1.14] text-white md:text-3xl">
                 {block.header}
               </h3>
-              <p className="mx-auto mt-5 max-w-md font-sans text-base font-light leading-relaxed text-white/80">
+              <p className="mt-3 max-w-xs font-sans text-sm font-light leading-relaxed text-white/80">
                 {block.sub}
               </p>
             </div>
           )
         })}
 
-        {/* Phase 2 — globe: smaller frosted destination cards slide left → right */}
+        {/* Phase 2 — globe: smaller dark-glass destination cards slide left → right */}
         {DESTINATIONS.map((dest, j) => {
-          const start = PHASE_SPLIT + j * destSeg
+          const start = DEST_START + j * destSeg
           const t = (progress - start) / destSeg
           const inSeg = t >= 0 && t <= 1
           const enter = smooth(t / 0.35)
           const exit = smooth((t - 0.65) / 0.35)
           const opacity = inSeg ? enter * (1 - exit) : 0
-          const x = (t - 0.5) * 220 // travel from left to right
+          const x = (t - 0.5) * 90 // subtle travel from left to right
           return (
             <div
               key={`dest-${j}`}
-              className="absolute top-1/2 left-1/2 w-[min(400px,82vw)] rounded-2xl border border-white/20 bg-white/10 px-9 py-7 text-left backdrop-blur-2xl"
+              className="dest-card absolute bottom-[9%] left-[5%] w-[min(320px,80vw)] px-7 py-6 text-left"
               style={{
                 opacity,
-                transform: `translate(-50%, -50%) translateX(${x}px)`,
-                boxShadow: '0 24px 70px rgba(0,0,0,0.35)',
+                transform: `translateX(${x}px)`,
                 pointerEvents: opacity > 0.5 ? 'auto' : 'none',
               }}
               aria-hidden={opacity < 0.5}
             >
-              <span className="font-sans text-[0.6rem] font-semibold uppercase tracking-[0.45em] text-white/55">
+              <span className="font-sans text-[0.58rem] font-semibold uppercase tracking-[0.42em] text-blue-200/70">
                 Destination {String(j + 1).padStart(2, '0')}
               </span>
-              <h3 className="mt-3 font-serif-tight text-2xl font-light leading-tight text-white md:text-3xl">
+              <h3 className="mt-2.5 font-serif-tight text-xl font-light leading-tight text-white md:text-2xl">
                 {dest.city}
               </h3>
-              <p className="mt-2 font-sans text-sm font-light leading-relaxed text-white/75">
+              <p className="mt-2 font-sans text-xs font-light leading-relaxed text-white/75 md:text-sm">
                 {dest.sub}
               </p>
             </div>
