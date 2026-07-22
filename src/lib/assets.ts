@@ -15,7 +15,7 @@ export const ASSETS = {
     'https://res.cloudinary.com/dn5jjkar4/video/upload/v1784684459/Skymoveglobe_1_pdwwev.mp4',
 
   whoWeAreBg:
-    '/__l5e/assets-v1/b0a6b59b-1a1c-44bc-8589-611a6bb90bb0/who-we-are-bg.jpeg',
+    'https://res.cloudinary.com/dn5jjkar4/image/upload/v1784686540/Add_airplane_to_background_202607220315_yeinwy.jpg',
 } as const
 
 // Shared container width used by the nav + hero content.
