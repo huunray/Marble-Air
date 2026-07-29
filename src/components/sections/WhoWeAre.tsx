@@ -13,22 +13,42 @@ const smooth = (v: number) => {
   const x = clamp(v)
   return x * x * (3 - 2 * x)
 }
+const COPY_LINES = [
+  'No matter how the world changes, what truly enriches',
+  'human life remains the same. Across continents and skies,',
+  'we nurture the journey through craft, shape every detail',
+  'through care, and guide a return to oneself.',
+]
 
 /**
- * Pinned intro panel that is progressively covered by a full-bleed gradient
- * panel rising from below, revealing the brand statement, copy and CTA.
+ * "Aperture" — the section opens through an expanding circular lens.
  *
- * Motion is driven by an eased requestAnimationFrame loop (rather than writing
- * scroll progress straight to the DOM) so the reveal glides instead of
- * tracking the wheel step-for-step.
+ * Choreography across the pin:
+ *   0.00–0.45  the aperture widens from a small port to full bleed while the
+ *              image inside counter-zooms (opposing motion reads as depth)
+ *   0.00–0.40  the giant wordmark splits, each half drifting outward as the
+ *              aperture grows between them
+ *   0.00–0.35  a technical ring rotates and dissolves around the port
+ *   0.45–1.00  the scrim settles and the copy wipes in line by line
+ *
+ * Every layer moves on its own curve and its own rate, driven by one eased
+ * requestAnimationFrame loop so the whole thing glides rather than tracking
+ * the wheel step-for-step.
  */
 export function WhoWeAre() {
   const wrapperRef = useRef<HTMLDivElement>(null)
   const viewportRef = useRef<HTMLDivElement>(null)
-  const introRef = useRef<HTMLDivElement>(null)
-  const coverRef = useRef<HTMLDivElement>(null)
-  const coverInnerRef = useRef<HTMLDivElement>(null)
-  const orbRef = useRef<HTMLDivElement>(null)
+  const apertureRef = useRef<HTMLDivElement>(null)
+  const imageRef = useRef<HTMLImageElement>(null)
+  const scrimRef = useRef<HTMLDivElement>(null)
+  const ringRef = useRef<SVGSVGElement>(null)
+  const splitLeftRef = useRef<HTMLDivElement>(null)
+  const splitRightRef = useRef<HTMLDivElement>(null)
+  const eyebrowRef = useRef<HTMLSpanElement>(null)
+  const headingRef = useRef<HTMLHeadingElement>(null)
+  const lineRefs = useRef<(HTMLSpanElement | null)[]>([])
+  const ctaRef = useRef<HTMLDivElement>(null)
+  const metaRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const wrapper = wrapperRef.current
@@ -41,40 +61,99 @@ export function WhoWeAre() {
 
     const render = () => {
       const p = eased
+      const vw = viewport.clientWidth
+      const vh = viewport.clientHeight
 
-      // The cover panel rises from below to hide the intro.
-      const rise = smooth(clamp(p / 0.62))
-      const cover = coverRef.current
-      if (cover) {
-        cover.style.transform = `translate3d(0, ${(1 - rise) * 100}%, 0)`
+      // ---- Aperture: small port → full bleed -------------------------
+      // Eased both ends so the lens holds shut a beat before it opens.
+      const open = smooth(clamp(p / 0.45))
+      const rMin = Math.min(vw, vh) * 0.1
+      const rMax = Math.hypot(vw, vh) / 2 + 4
+      const r = rMin + (rMax - rMin) * open
+      const aperture = apertureRef.current
+      if (aperture) {
+        aperture.style.clipPath = `circle(${r.toFixed(1)}px at 50% 50%)`
       }
 
-      // Intro settles back slightly as it is covered — adds depth.
-      const intro = introRef.current
-      if (intro) {
-        intro.style.transform = `scale(${1 - rise * 0.06}) translateY(${-rise * 40}px)`
-        intro.style.opacity = String(1 - rise * 0.55)
+      // Image counter-zooms as the port widens, and drifts a touch.
+      const img = imageRef.current
+      if (img) {
+        img.style.transform = `scale(${(1.55 - open * 0.55).toFixed(3)}) translateY(${(
+          (1 - open) * -3
+        ).toFixed(2)}%)`
       }
 
-      // Cover contents lift in once the panel has largely landed.
-      const inner = coverInnerRef.current
-      if (inner) {
-        const t = smooth(clamp((p - 0.42) / 0.34))
-        inner.style.opacity = String(t)
-        inner.style.transform = `translateY(${(1 - t) * 44}px)`
+      // Scrim deepens once the image fills the frame, so copy stays readable.
+      const scrim = scrimRef.current
+      if (scrim) {
+        scrim.style.opacity = String(0.12 + smooth(clamp((p - 0.3) / 0.4)) * 0.58)
       }
 
-      // Glow drifts upward through the reveal.
-      const orb = orbRef.current
-      if (orb) {
-        orb.style.transform = `translate3d(0, ${(1 - p) * 90 - 30}px, 0) scale(${
-          0.85 + p * 0.3
-        })`
+      // ---- Technical ring: rotates, then dissolves --------------------
+      const ring = ringRef.current
+      if (ring) {
+        const ringFade = 1 - smooth(clamp((p - 0.06) / 0.3))
+        ring.style.opacity = String(ringFade)
+        ring.style.transform = `translate(-50%, -50%) rotate(${(p * 190).toFixed(2)}deg) scale(${(
+          1 + open * 2.4
+        ).toFixed(3)})`
+      }
+
+      // ---- Wordmark: the aperture drives the halves apart --------------
+      // Each half is anchored to its own side of centre (centring both would
+      // stack them) and rides just outside the lens edge, so the opening
+      // aperture is what physically pushes the wordmark open.
+      const sl = splitLeftRef.current
+      const sr = splitRightRef.current
+      if (sl && sr) {
+        const edge = r + 26
+        const fade = 1 - smooth(clamp((p - 0.14) / 0.24))
+        sl.style.transform = `translate(-100%, -50%) translateX(${(-edge).toFixed(1)}px)`
+        sr.style.transform = `translate(0%, -50%) translateX(${edge.toFixed(1)}px)`
+        sl.style.opacity = String(fade)
+        sr.style.opacity = String(fade)
+      }
+
+      // Corner meta drifts out with the wordmark.
+      const meta = metaRef.current
+      if (meta) {
+        meta.style.opacity = String(1 - smooth(clamp((p - 0.1) / 0.25)))
+      }
+
+      // ---- Revealed content -------------------------------------------
+      const eyebrow = eyebrowRef.current
+      if (eyebrow) {
+        const t = smooth(clamp((p - 0.46) / 0.16))
+        eyebrow.style.opacity = String(t)
+        eyebrow.style.transform = `translateY(${((1 - t) * 18).toFixed(1)}px)`
+      }
+
+      const heading = headingRef.current
+      if (heading) {
+        const t = smooth(clamp((p - 0.5) / 0.2))
+        heading.style.opacity = String(t)
+        heading.style.transform = `translateY(${((1 - t) * 30).toFixed(1)}px)`
+        heading.style.letterSpacing = `${(-0.04 + t * 0.03).toFixed(3)}em`
+      }
+
+      // Body copy wipes upward, line by line.
+      lineRefs.current.forEach((line, i) => {
+        if (!line) return
+        const t = smooth(clamp((p - (0.6 + i * 0.045)) / 0.16))
+        line.style.transform = `translateY(${((1 - t) * 105).toFixed(1)}%)`
+        line.style.opacity = String(0.25 + t * 0.75)
+      })
+
+      const cta = ctaRef.current
+      if (cta) {
+        const t = smooth(clamp((p - 0.82) / 0.14))
+        cta.style.opacity = String(t)
+        cta.style.transform = `translateY(${((1 - t) * 22).toFixed(1)}px)`
       }
     }
 
     const tick = () => {
-      eased += (target - eased) * 0.09
+      eased += (target - eased) * 0.085
       if (Math.abs(target - eased) < 0.00001) eased = target
       render()
       rafId = requestAnimationFrame(tick)
@@ -83,7 +162,7 @@ export function WhoWeAre() {
     const trigger = ScrollTrigger.create({
       trigger: wrapper,
       start: 'top top',
-      end: '+=260%',
+      end: '+=340%',
       pin: viewport,
       pinSpacing: true,
       scrub: true,
@@ -99,8 +178,12 @@ export function WhoWeAre() {
       ScrollTrigger.refresh()
     })
 
+    const onResize = () => render()
+    window.addEventListener('resize', onResize)
+
     return () => {
       cancelAnimationFrame(rafId)
+      window.removeEventListener('resize', onResize)
       trigger.kill()
     }
   }, [])
@@ -111,73 +194,129 @@ export function WhoWeAre() {
         ref={viewportRef}
         className="relative h-screen w-full overflow-hidden bg-black"
       >
-        {/* ---- Intro panel (gets covered) ---------------------------- */}
+        {/* ---- Aperture: image revealed through an expanding lens ------ */}
         <div
-          ref={introRef}
-          className="absolute inset-0 flex items-center justify-center bg-[#07070b]"
+          ref={apertureRef}
+          className="absolute inset-0 overflow-hidden"
+          style={{ clipPath: 'circle(10% at 50% 50%)' }}
         >
           <img
+            ref={imageRef}
             src={ASSETS.whoWeAreBg}
             alt=""
             aria-hidden="true"
-            className="absolute inset-0 h-full w-full object-cover opacity-60"
+            className="absolute inset-0 h-full w-full object-cover will-change-transform"
+            style={{ transform: 'scale(1.55)' }}
             draggable={false}
           />
-          <div className="absolute inset-0 bg-black/45" />
-          {/* Faint editorial grid over the image */}
-          <div className="wwa-grid pointer-events-none absolute inset-0" />
-
-          <div className="relative z-10 px-6 text-center">
-            <span className="font-sans text-[0.68rem] font-medium uppercase tracking-[0.5em] text-white/50">
-              Marble Air
-            </span>
-            <h2 className="mx-auto mt-6 max-w-3xl font-serif-tight text-4xl font-light leading-[1.12] text-white md:text-6xl">
-              A new era of flying
-            </h2>
-          </div>
+          <div
+            ref={scrimRef}
+            className="absolute inset-0 bg-black"
+            style={{ opacity: 0.12 }}
+          />
         </div>
 
-        {/* ---- Cover panel (rises to reveal) ------------------------- */}
-        <div
-          ref={coverRef}
-          className="wwa-cover absolute inset-0 flex items-center justify-center overflow-hidden will-change-transform"
-          style={{ transform: 'translate3d(0, 100%, 0)' }}
-        >
-          {/* Glowing orb */}
-          <div
-            ref={orbRef}
-            className="wwa-orb left-1/2 h-[58vh] w-[58vh] -translate-x-1/2"
-            style={{ top: '6%' }}
-            aria-hidden="true"
-          />
+        {/* Grain over everything for a filmic finish */}
+        <div className="ap-grain pointer-events-none absolute inset-0" />
 
-          <div
-            ref={coverInnerRef}
-            className="relative z-10 mx-auto max-w-2xl px-6 text-center"
-            style={{ opacity: 0 }}
-          >
-            <span className="font-sans text-[0.68rem] font-medium uppercase tracking-[0.5em] text-white/70">
+        {/* ---- Technical ring around the port -------------------------- */}
+        <svg
+          ref={ringRef}
+          className="pointer-events-none absolute top-1/2 left-1/2"
+          width="440"
+          height="440"
+          viewBox="0 0 440 440"
+          style={{ transform: 'translate(-50%, -50%)' }}
+          aria-hidden="true"
+        >
+          <circle
+            cx="220"
+            cy="220"
+            r="196"
+            fill="none"
+            stroke="rgba(255,255,255,0.28)"
+            strokeWidth="1"
+            strokeDasharray="2 12"
+          />
+          <circle
+            cx="220"
+            cy="220"
+            r="212"
+            fill="none"
+            stroke="rgba(120,180,255,0.35)"
+            strokeWidth="1"
+            strokeDasharray="46 320"
+          />
+        </svg>
+
+        {/* ---- Giant wordmark splitting around the aperture ------------ */}
+        <div
+          ref={splitLeftRef}
+          className="ap-split pointer-events-none absolute top-1/2 left-1/2 will-change-transform"
+          style={{ transform: 'translate(-100%, -50%) translateX(-10vmin)' }}
+          aria-hidden="true"
+        >
+          MARBLE
+        </div>
+        <div
+          ref={splitRightRef}
+          className="ap-split pointer-events-none absolute top-1/2 left-1/2 will-change-transform"
+          style={{ transform: 'translate(0%, -50%) translateX(10vmin)' }}
+          aria-hidden="true"
+        >
+          AIR
+        </div>
+
+        {/* ---- Corner meta -------------------------------------------- */}
+        <div ref={metaRef} className="pointer-events-none absolute inset-0">
+          <span className="ap-meta absolute top-[9%] left-[6%]">Est. Above the Clouds</span>
+          <span className="ap-meta absolute top-[9%] right-[6%]">N 51.4700 / W 0.4543</span>
+          <span className="ap-meta absolute bottom-[9%] left-[6%]">Altitude 41,000 FT</span>
+          <span className="ap-meta absolute right-[6%] bottom-[9%]">Marble Air ®</span>
+        </div>
+
+        {/* ---- Revealed content --------------------------------------- */}
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-6">
+          <div className="w-full max-w-3xl text-center">
+            <span
+              ref={eyebrowRef}
+              className="ap-meta block"
+              style={{ opacity: 0 }}
+            >
               Who we are
             </span>
 
-            <h2 className="mt-6 font-serif-tight text-4xl font-light leading-[1.08] text-white md:text-6xl">
+            <h2
+              ref={headingRef}
+              className="mt-6 font-serif-tight text-4xl font-light leading-[1.06] text-white md:text-[4.2rem]"
+              style={{ opacity: 0 }}
+            >
               The quiet luxury
               <br />
               of flight
             </h2>
 
-            <p className="mt-8 font-sans text-base font-light leading-[1.9] text-white/85">
-              No matter how the world changes, what truly enriches human life
-              remains the same. Across continents and skies, we nurture the
-              journey through craft, shape every detail through care, and guide a
-              return to oneself through the quiet luxury of flight.
-            </p>
-            <p className="mt-5 font-sans text-base font-light leading-[1.9] text-white/75">
-              Across cultures and borders, we carry a way of being — timeless and
-              quietly alive — where every traveler's inner calm is free to unfold.
-            </p>
+            <div className="mx-auto mt-9 max-w-2xl">
+              {COPY_LINES.map((line, i) => (
+                <span key={i} className="ap-line">
+                  <span
+                    ref={(el) => {
+                      lineRefs.current[i] = el
+                    }}
+                    className="font-sans text-sm font-light leading-[2] text-white/85 md:text-base"
+                    style={{ transform: 'translateY(105%)' }}
+                  >
+                    {line}
+                  </span>
+                </span>
+              ))}
+            </div>
 
-            <div className="mt-10 flex justify-center">
+            <div
+              ref={ctaRef}
+              className="pointer-events-auto mt-10 flex justify-center"
+              style={{ opacity: 0 }}
+            >
               <CTAButton href="#company">View Company</CTAButton>
             </div>
           </div>
